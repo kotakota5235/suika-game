@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Suika Game Clone</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+</head>
+
+<script>
+    // URL のクエリパラメータ ?sat=○○ を取得
+    const params = new URLSearchParams(location.search);
+    const sat = params.get("sat");
+
+    if (sat) {
+        // HTML 全体の彩度を変更
+        document.documentElement.style.filter = `saturate(${sat}%)`;
+    }
+</script>
+
+<body>
+    <div id="main-wrapper">
+        <div id="game-container">
+            <div id="ui-layer">
+                <div id="score-board">
+                    <div class="score-item">
+                        <span class="label">Score</span>
+                        <span id="current-score" class="value">0</span>
+                    </div>
+                    <div class="score-item">
+                        <span class="label">Best</span>
+                        <span id="best-score" class="value">0</span>
+                    </div>
+                </div>
+                <div id="next-fruit-container">
+                    <span class="label">Next</span>
+                    <div id="next-fruit-display"></div>
+                </div>
+            </div>
+            <canvas id="game-canvas"></canvas>
+
+            <div id="game-over-modal" class="hidden">
+                <div class="modal-content">
+                    <h2>Game Over</h2>
+                    <p>Score: <span id="final-score">0</span></p>
+                    <button id="restart-btn">Try Again</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="evolution-guide">
+            <h3>Growth Wheel</h3>
+            <div id="wheel-container">
+                <!-- Fruits will be injected here -->
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="main.js"></script>
+</body>
+
+</html>
