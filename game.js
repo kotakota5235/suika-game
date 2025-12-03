@@ -301,7 +301,7 @@ export class Game {
             // Ignore static bodies (walls) and the current controlled fruit
             if (body.isStatic || body === this.currentFruit || body.isMerging) continue;
 
-            if (body.position.y < dangerLineY) {
+            if (body.position.y - body.circleRadius < dangerLineY) {
                 // Check if it's settled (not just bouncing up temporarily)
                 if (body.speed < 0.5) {
                     isOverflowing = true;
