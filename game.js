@@ -14,6 +14,14 @@ export class Game {
         this.bestScore = localStorage.getItem('suika-best-score') || 0;
         this.isGameOver = false;
         this.canDrop = true;
+        this.canDrop = true;
+
+        // Stopwatch State
+        this.timerStartTime = null;
+        this.timerInterval = null;
+        this.isTimerRunning = false;
+        this.timerLimit = 10 * 60 * 1000; // 10 minutes in milliseconds
+        this.elapsedPaused = 0; // To track time if we needed pause, but here effectively just diff
 
         this.init();
     }
@@ -69,17 +77,88 @@ export class Game {
                     context.fillStyle = '#FFF';
                     context.globalAlpha = 0.7;
 
-                    // Eyes
+                    // Get fruit data
+                    const fruitData = FRUITS[body.fruitLevel];
+                    const face = fruitData.face || { mouth: 'smile', eye: 'dot' };
+                    const mouthType = face.mouth;
+                    const eyeType = face.eye || 'dot';
+
+                    // Draw Eyes
                     context.beginPath();
-                    context.arc(-radius * 0.3, -radius * 0.1, radius * 0.15, 0, 2 * Math.PI);
-                    context.arc(radius * 0.3, -radius * 0.1, radius * 0.15, 0, 2 * Math.PI);
-                    context.fill();
+                    // Left Eye
+                    const eyeOffsetX = radius * 0.3;
+                    const eyeOffsetY = -radius * 0.1;
+                    const eyeRadius = radius * 0.15;
+
+                    const drawEye = (x, y, type) => {
+                        if (type === 'dot') {
+                            context.moveTo(x + eyeRadius, y);
+                            context.arc(x, y, eyeRadius, 0, 2 * Math.PI);
+                        } else if (type === 'line') {
+                            context.moveTo(x - eyeRadius, y);
+                            context.lineTo(x + eyeRadius, y);
+                        } else if (type === 'open') {
+                            context.moveTo(x + eyeRadius, y);
+                            context.arc(x, y, eyeRadius, 0, 2 * Math.PI);
+                        }
+                    };
+
+                    // Determine specific eye types for wink, etc.
+                    let leftEyeType = eyeType;
+                    let rightEyeType = eyeType;
+
+                    if (eyeType === 'wink') {
+                        leftEyeType = 'dot';
+                        rightEyeType = 'line';
+                    }
+
+                    // Stroke or Fill eyes based on type? 
+                    // Usually lines are stroke, dots are fill. 
+                    // Let's handle drawing paths first then stroke/fill.
+
+                    // Complicated to mix fill/stroke in one path if styles differ.
+                    // Let's do left eye then right eye.
+
+                    const renderEye = (x, y, type) => {
+                        context.beginPath();
+                        if (type === 'dot') {
+                            context.fillStyle = '#FFF';
+                            context.arc(x, y, eyeRadius, 0, 2 * Math.PI);
+                            context.fill();
+                        } else if (type === 'line') {
+                            context.strokeStyle = '#FFF';
+                            context.lineWidth = 3;
+                            context.moveTo(x - eyeRadius, y);
+                            context.lineTo(x + eyeRadius, y);
+                            context.stroke();
+                        } else if (type === 'open') {
+                            context.strokeStyle = '#FFF';
+                            context.lineWidth = 2;
+                            context.arc(x, y, eyeRadius, 0, 2 * Math.PI);
+                            context.stroke();
+                        }
+                    };
+
+                    renderEye(-eyeOffsetX, eyeOffsetY, leftEyeType);
+                    renderEye(eyeOffsetX, eyeOffsetY, rightEyeType);
+
 
                     // Mouth
                     context.beginPath();
                     context.strokeStyle = '#FFF';
-                    context.lineWidth = 2;
-                    context.arc(0, radius * 0.1, radius * 0.2, 0, Math.PI);
+                    context.lineWidth = 3;
+
+                    if (mouthType === 'smile') {
+                        context.arc(0, radius * 0.1, radius * 0.2, 0, Math.PI);
+                    } else if (mouthType === 'frown') {
+                        context.arc(0, radius * 0.3, radius * 0.2, Math.PI, 2 * Math.PI);
+                    } else if (mouthType === 'line') {
+                        context.moveTo(-radius * 0.2, radius * 0.2);
+                        context.lineTo(radius * 0.2, radius * 0.2);
+                    } else if (mouthType === 'open') {
+                        context.arc(0, radius * 0.2, radius * 0.15, 0, 2 * Math.PI);
+                    }
+
                     context.stroke();
 
                     context.rotate(-angle);
@@ -140,7 +219,58 @@ export class Game {
     }
 
     start() {
+        // Check if page was recently unloaded (reload logic)
+        // We use sessionStorage to robustly detect "reload" behavior even if the browser reports it as a standard navigation
+        if (sessionStorage.getItem('suika-was-reloaded')) {
+            this.startTimer();
+            sessionStorage.removeItem('suika-was-reloaded');
+        }
+
+        // Also setup the listener for the next reload
+        window.addEventListener('beforeunload', () => {
+            sessionStorage.setItem('suika-was-reloaded', 'true');
+        });
+
         this.spawnFruit();
+    }
+
+    startTimer() {
+        if (this.isTimerRunning) return;
+
+        this.isTimerRunning = true;
+        this.timerStartTime = Date.now();
+
+        this.timerInterval = setInterval(() => {
+            this.updateTimerDisplay();
+        }, 100);
+    }
+
+    stopTimer() {
+        if (this.timerInterval) {
+            clearInterval(this.timerInterval);
+            this.timerInterval = null;
+        }
+        this.isTimerRunning = false;
+    }
+
+    updateTimerDisplay() {
+        if (!this.isTimerRunning) return;
+
+        const now = Date.now();
+        const elapsed = now - this.timerStartTime;
+
+        if (elapsed >= this.timerLimit) {
+            this.stopTimer();
+            document.getElementById('stopwatch').textContent = "10:00";
+            return;
+        }
+
+        const totalSeconds = Math.floor(elapsed / 1000);
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds % 60;
+
+        const formattedTime = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        document.getElementById('stopwatch').textContent = formattedTime;
     }
 
     handleInputMove(e) {
@@ -193,6 +323,14 @@ export class Game {
     }
 
     dropFruit() {
+        if (!this.isTimerRunning) {
+            // Check if we already hit limit or if it's just not started
+            const currentText = document.getElementById('stopwatch').textContent;
+            if (currentText !== "10:00") {
+                this.startTimer();
+            }
+        }
+
         this.canDrop = false;
         Matter.Body.setStatic(this.currentFruit, false);
         this.currentFruit = null;
@@ -213,11 +351,51 @@ export class Game {
             display.style.borderRadius = '50%';
             display.style.position = 'relative';
 
-            // Add face using innerHTML
+            // Generate dynamic face based on fruit configuration
+            const face = this.nextFruit.face || { mouth: 'smile', eye: 'dot' };
+            const mouthType = face.mouth;
+            const eyeType = face.eye || 'dot';
+
+            const baseEyeStyle = 'position: absolute; top: 35%; width: 15%; height: 15%; opacity: 0.9;';
+            const leftEyePos = 'left: 20%;';
+            const rightEyePos = 'right: 20%;';
+
+            const getEyeStyle = (type) => {
+                if (type === 'dot') return 'background: white; border-radius: 50%;';
+                if (type === 'line') return 'height: 10%; top: 40%; background: white; border-radius: 2px;';
+                if (type === 'open') return 'border: 2px solid white; border-radius: 50%; background: transparent; box-sizing: border-box;';
+                return 'background: white; border-radius: 50%;';
+            };
+
+            let leftType = eyeType;
+            let rightType = eyeType;
+            if (eyeType === 'wink') {
+                leftType = 'dot';
+                rightType = 'line';
+            }
+
+            const leftEyeStyle = `${baseEyeStyle} ${leftEyePos} ${getEyeStyle(leftType)}`;
+            const rightEyeStyle = `${baseEyeStyle} ${rightEyePos} ${getEyeStyle(rightType)}`;
+
+            const baseMouthStyle = 'position: absolute; left: 50%; transform: translateX(-50%); opacity: 0.9;';
+            let mouthStyle = '';
+
+            if (mouthType === 'smile') {
+                mouthStyle = `${baseMouthStyle} bottom: 25%; width: 40%; height: 20%; border-bottom: 3px solid white; border-radius: 50%;`;
+            } else if (mouthType === 'frown') {
+                mouthStyle = `${baseMouthStyle} bottom: 20%; width: 40%; height: 20%; border-top: 3px solid white; border-radius: 50%;`;
+            } else if (mouthType === 'line') {
+                mouthStyle = `${baseMouthStyle} bottom: 30%; width: 40%; height: 3px; background: white; border-radius: 2px;`;
+            } else if (mouthType === 'open') {
+                mouthStyle = `${baseMouthStyle} bottom: 25%; width: 30%; height: 30%; border: 3px solid white; border-radius: 50%; box-sizing: border-box;`;
+            } else {
+                mouthStyle = `${baseMouthStyle} bottom: 25%; width: 40%; height: 20%; border-bottom: 3px solid white; border-radius: 50%;`;
+            }
+
             display.innerHTML = `
-                <div style="position: absolute; top: 30%; left: 20%; width: 15%; height: 15%; background: white; border-radius: 50%; opacity: 0.7;"></div>
-                <div style="position: absolute; top: 30%; right: 20%; width: 15%; height: 15%; background: white; border-radius: 50%; opacity: 0.7;"></div>
-                <div style="position: absolute; bottom: 25%; left: 50%; transform: translateX(-50%); width: 40%; height: 20%; border-bottom: 2px solid white; border-radius: 50%;"></div>
+                <div style="${leftEyeStyle}"></div>
+                <div style="${rightEyeStyle}"></div>
+                <div style="${mouthStyle}"></div>
             `;
         }
     }
@@ -346,6 +524,11 @@ export class Game {
         this.gameOverTimer = null;
         this.currentFruit = null;
         this.nextFruit = null;
+
+        // Reset Timer - DISABLED per user request (persist through retry)
+        // this.stopTimer();
+        // this.timerStartTime = null;
+        // document.getElementById('stopwatch').textContent = "00:00";
 
         // Hide Modal
         document.getElementById('game-over-modal').classList.add('hidden');

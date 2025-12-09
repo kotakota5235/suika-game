@@ -38,11 +38,60 @@ function initEvolutionWheel() {
         el.style.left = `${x}px`;
         el.style.top = `${y}px`;
 
-        // Add face
+        // Add Face
+        const face = fruit.face || { mouth: 'smile', eye: 'dot' };
+        const mouthType = face.mouth;
+        const eyeType = face.eye || 'dot';
+
+        let leftEyeStyle = '';
+        let rightEyeStyle = '';
+        let mouthStyle = '';
+        let mouthClass = ''; // Helper to simplify some CSS if needed, or just inline styles
+
+        // define common styles
+        const baseEyeStyle = 'position: absolute; top: 35%; width: 15%; height: 15%; opacity: 0.9;';
+        const leftEyePos = 'left: 20%;';
+        const rightEyePos = 'right: 20%;';
+
+        const getEyeStyle = (type) => {
+            if (type === 'dot') return 'background: white; border-radius: 50%;';
+            if (type === 'line') return 'height: 10%; top: 40%; background: white; border-radius: 2px;'; // thinner, centered
+            if (type === 'open') return 'border: 2px solid white; border-radius: 50%; background: transparent; box-sizing: border-box;';
+            return 'background: white; border-radius: 50%;'; // fallback dot
+        };
+
+        let leftType = eyeType;
+        let rightType = eyeType;
+        if (eyeType === 'wink') {
+            leftType = 'dot';
+            rightType = 'line';
+        }
+
+        leftEyeStyle = `${baseEyeStyle} ${leftEyePos} ${getEyeStyle(leftType)}`;
+        rightEyeStyle = `${baseEyeStyle} ${rightEyePos} ${getEyeStyle(rightType)}`;
+
+
+        // Mouth Logic
+        const baseMouthStyle = 'position: absolute; left: 50%; transform: translateX(-50%); opacity: 0.9;';
+
+        let mouthInner = '';
+        if (mouthType === 'smile') {
+            mouthStyle = `${baseMouthStyle} bottom: 25%; width: 40%; height: 20%; border-bottom: 3px solid white; border-radius: 50%;`;
+        } else if (mouthType === 'frown') {
+            mouthStyle = `${baseMouthStyle} bottom: 20%; width: 40%; height: 20%; border-top: 3px solid white; border-radius: 50%;`;
+        } else if (mouthType === 'line') {
+            mouthStyle = `${baseMouthStyle} bottom: 30%; width: 40%; height: 3px; background: white; border-radius: 2px;`;
+        } else if (mouthType === 'open') {
+            mouthStyle = `${baseMouthStyle} bottom: 25%; width: 30%; height: 30%; border: 3px solid white; border-radius: 50%; box-sizing: border-box;`;
+        } else {
+            // default smile
+            mouthStyle = `${baseMouthStyle} bottom: 25%; width: 40%; height: 20%; border-bottom: 3px solid white; border-radius: 50%;`;
+        }
+
         el.innerHTML = `
-            <div style="position: absolute; top: 30%; left: 20%; width: 15%; height: 15%; background: white; border-radius: 50%; opacity: 0.7;"></div>
-            <div style="position: absolute; top: 30%; right: 20%; width: 15%; height: 15%; background: white; border-radius: 50%; opacity: 0.7;"></div>
-            <div style="position: absolute; bottom: 25%; left: 50%; transform: translateX(-50%); width: 40%; height: 20%; border-bottom: 2px solid white; border-radius: 50%;"></div>
+            <div style="${leftEyeStyle}"></div>
+            <div style="${rightEyeStyle}"></div>
+            <div style="${mouthStyle}"></div>
         `;
 
         container.appendChild(el);

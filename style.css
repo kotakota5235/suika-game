@@ -104,9 +104,8 @@ body {
         flex-direction: column;
     }
 
-    #evolution-guide {
+    #side-panel {
         display: none;
-        /* Hide on small screens for now to avoid clutter */
     }
 }
 
@@ -143,6 +142,30 @@ body {
     align-items: flex-start;
     color: var(--ui-text);
     font-weight: bold;
+}
+
+#side-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    align-items: center;
+}
+
+#stopwatch-container {
+    background: rgba(255, 255, 255, 0.5);
+    /* Match glassmorphism */
+    padding: 15px;
+    border-radius: 16px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: bold;
+    color: var(--ui-text);
+    font-size: 2rem;
+    font-variant-numeric: tabular-nums;
+    width: 320px;
+    /* Match evolution guide width */
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
 }
 
 .score-item .label {
