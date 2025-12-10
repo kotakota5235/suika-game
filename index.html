@@ -10,13 +10,20 @@
 </head>
 
 <script>
-    // URL のクエリパラメータ ?sat=○○ を取得
     const params = new URLSearchParams(location.search);
-    const sat = params.get("sat");
+    const group = params.get("g");
 
-    if (sat) {
-        // HTML 全体の彩度を変更
-        document.documentElement.style.filter = `saturate(${sat}%)`;
+    // グループ → 彩度 の対応表
+    const satMap = {
+        "a": 25,
+        "b": 50,
+        "c": 75
+    };
+
+    // group が A/B/C の場合のみ適用
+    if (group && satMap[group]) {
+        const satValue = satMap[group];
+        document.documentElement.style.filter = `saturate(${satValue}%)`;
     }
 </script>
 
